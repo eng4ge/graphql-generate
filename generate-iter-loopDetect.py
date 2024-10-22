@@ -9,19 +9,18 @@ def extract_fields(schema, type_name):
 
 def parse_graphql_operations(schema_json, specific_operation=None):
     schema = json.loads(schema_json)
-
+    
     def bfs_operations(start_field, parent_path):
-        queue = deque([(start_field, parent_path)])
-        visited_paths = set()
+        queue = deque([(start_field, parent_path, set())])
 
         while queue:
-            field, current_path = queue.popleft()
+            field, current_path, visited = queue.popleft()
             new_path = f"{current_path}.{field['name']}"
             
-            if new_path in visited_paths:
+            if field['name'] in visited:
                 print(f"Potential loop detected: {new_path}")
                 continue
-            visited_paths.add(new_path)
+            visited.add(field['name'])
             
             if current_path.startswith("Query"):
                 if specific_operation is None or new_path.startswith(specific_operation):
@@ -37,12 +36,14 @@ def parse_graphql_operations(schema_json, specific_operation=None):
             if field_type["kind"] in ["OBJECT", "INTERFACE"]:
                 new_fields = extract_fields(schema, field_type["name"])
                 for new_field in new_fields:
-                    queue.append((new_field, new_path))
+                    queue.append((new_field, new_path, visited.copy()))
 
     for type_def in schema["data"]["__schema"]["types"]:
         if type_def["kind"] == "OBJECT" and type_def["name"] in ["Query", "Mutation"]:
             for field in type_def.get("fields", []):
                 bfs_operations(field, type_def["name"])
+
+    return
 
 # Example usage
 if __name__ == "__main__":
