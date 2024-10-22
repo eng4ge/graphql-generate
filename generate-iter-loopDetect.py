@@ -7,16 +7,16 @@ def extract_fields(schema, type_name):
             return type_def.get("fields", [])
     return []
 
-def parse_graphql_operations(schema_json):
+def parse_graphql_operations(schema_json, specific_operation=None):
     schema = json.loads(schema_json)
-    
+
     def bfs_operations(start_field, parent_path):
         queue = deque([(start_field, parent_path)])
         visited_paths = set()
 
         while queue:
             field, current_path = queue.popleft()
-            new_path = f"{current_path} => {field['name']}"
+            new_path = f"{current_path}.{field['name']}"
             
             if new_path in visited_paths:
                 print(f"Potential loop detected: {new_path}")
@@ -24,9 +24,11 @@ def parse_graphql_operations(schema_json):
             visited_paths.add(new_path)
             
             if current_path.startswith("Query"):
-                print(new_path)
+                if specific_operation is None or new_path.startswith(specific_operation):
+                    print(new_path)
             elif current_path.startswith("Mutation"):
-                print(new_path)
+                if specific_operation is None or new_path.startswith(specific_operation):
+                    print(new_path)
             
             field_type = field["type"]
             while field_type.get("ofType"):
@@ -47,10 +49,14 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: python script.py <schema.json>")
+        print("Usage: python script.py <schema.json> [-o specific_operation]")
         sys.exit(1)
+
+    specific_operation = None
+    if "-o" in sys.argv:
+        specific_operation = sys.argv[sys.argv.index("-o") + 1]
 
     with open(sys.argv[1], 'r') as file:
         schema_json = file.read()
 
-    parse_graphql_operations(schema_json)
+    parse_graphql_operations(schema_json, specific_operation)
