@@ -15,9 +15,9 @@ def parse_graphql_operations(schema_json):
         while stack:
             field, current_path = stack.pop()
             new_path = f"{current_path} => {field['name']}"
-            if current_path.startswith("Query"):
+            if parent_path.startswith("Query"):
                 operations["queries"].append(new_path)
-            elif current_path.startswith("Mutation"):
+            elif parent_path.startswith("Mutation"):
                 operations["mutations"].append(new_path)
             
             field_type = field["type"]
